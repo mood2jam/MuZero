@@ -41,8 +41,8 @@ class MuZero_Agent:
 		self.c2 = 19652
 		self.gamma = 1
 		self.num_sims = 50
-		self.num_actions = 512
-		self.game_data = torch.zeros((1, 4 + self.num_actions + 17*8*8))
+		self.num_actions = 256
+		self.game_data = torch.zeros((1, 4 + self.num_actions + 6*8*8))
 		self.states_visited = [None]
 		self.device = device
 		self.num_unroll_steps = 5
@@ -51,45 +51,46 @@ class MuZero_Agent:
 		self.game_batch_num = 0
 		self.observations_per_state = 4
 		self.state_buffer = []
+		self.type = "computer"
 
-	def trans_player(self, player_rep):
-		"""
-		Custom function depending on game we are playing
-		"""
-		BLUE = (0, 0, 255)
-		if player_rep == BLUE:
-			return 0
-		else:
-			return 1
+	# def trans_player(self, player_rep):
+	# 	"""
+	# 	Custom function depending on game we are playing
+	# 	"""
+	# 	BLUE = (0, 0, 255)
+	# 	if player_rep == BLUE:
+	# 		return 0
+	# 	else:
+	# 		return 1
 
-	def trans_state(self, state_reps, player):
-		"""
-		Custom function that translates the state to a tensor depending on the game we are playing
-
-		Params
-			A list of states taken from the game
-		"""
-		state = torch.zeros((16, 8, 8))
-		# the default shape for state_reps is 4 x 8 x 8
-		for k, state_rep in enumerate(state_reps):
-			for i in range(8):
-				for j in range(8):
-					if state_rep[i][j] == 'B-':
-						state[0 + 2 * k, i, j] = 1.
-					elif state_rep[i][j] == 'BK':
-						state[1 + 2 * k, i, j] = 1.
-					elif state_rep[i][j] == 'R-':
-						state[0 + 2 * (k + self.observations_per_state), i, j] = 1.
-					elif state_rep[i][j] == 'RK':
-						state[1 + 2 * (k + self.observations_per_state), i, j] = 1.
-
-		if player == 1:
-			state = torch.cat([state, torch.ones((1, 8, 8))], dim=0)
-		else:
-			state = torch.cat([state, torch.zeros((1, 8, 8))], dim=0)
-
-		# This translates into 17 x 8 x 8 state that we can feed into our networks
-		return state
+	# def trans_state(self, state_reps, player):
+	# 	"""
+	# 	Custom function that translates the state to a tensor depending on the game we are playing
+	#
+	# 	Params
+	# 		A list of states taken from the game
+	# 	"""
+	# 	state = torch.zeros((16, 8, 8))
+	# 	# the default shape for state_reps is 4 x 8 x 8
+	# 	for k, state_rep in enumerate(state_reps):
+	# 		for i in range(8):
+	# 			for j in range(8):
+	# 				if state_rep[i][j] == 'B-':
+	# 					state[0 + 2 * k, i, j] = 1.
+	# 				elif state_rep[i][j] == 'BK':
+	# 					state[1 + 2 * k, i, j] = 1.
+	# 				elif state_rep[i][j] == 'R-':
+	# 					state[0 + 2 * (k + self.observations_per_state), i, j] = 1.
+	# 				elif state_rep[i][j] == 'RK':
+	# 					state[1 + 2 * (k + self.observations_per_state), i, j] = 1.
+	#
+	# 	if player == 1:
+	# 		state = torch.cat([state, torch.ones((1, 8, 8))], dim=0)
+	# 	else:
+	# 		state = torch.cat([state, torch.zeros((1, 8, 8))], dim=0)
+	#
+	# 	# This translates into 17 x 8 x 8 state that we can feed into our networks
+	# 	return state
 
 	def run_MCTS(self, s0, masked_actions): # 88% of the time
 		"""
@@ -168,11 +169,11 @@ class MuZero_Agent:
 		self.path = []
 
 
-	def take_action(self, raw_state, masked_actions, player_rep, reward=0, return_=0):
+	def take_action(self, raw_state, masked_actions, player, reward=0, return_=0):
 		# Translate the state and player into something we can work with
-		player = self.trans_player(player_rep)
-		state_rep = self.trans_state(raw_state, player)
 
+		# state_rep = self.trans_state(raw_state, player_rep)
+		state_rep = torch.from_numpy(raw_state).to(torch.float32)
 		# Get the state and policy
 		s0 = self.repr_net(state_rep.to(self.device).unsqueeze(0)) 	# Input a bunch of states into this depending on how many games we are playing at once
 		N0 = self.run_MCTS(s0, masked_actions) 											# This will use one set of nueral networks no matter how many games we are looking at
@@ -190,13 +191,13 @@ class MuZero_Agent:
 		self.states_visited.append(state_rep)
 
 		# Formatted as player, action, return, reward, policy, state
-		assert (state_rep.shape[0] - 1) // 4 == self.observations_per_state
+		# assert (state_rep.shape[0] - 1) // 4 == self.observations_per_state
 		assert state_rep.shape[1] == 8
 		assert state_rep.shape[2] == 8
 
 		# Assert everything is in the right shape
 		state_info = torch.cat([torch.tensor([player, action, return_, reward]).to(torch.float32).to(self.device), P0, state_rep.reshape(state_rep.shape[0]*state_rep.shape[1]*state_rep.shape[2]).to(self.device)], dim=0)
-
+		# print(P0[np.where(P0 != 0)])
 		if self.game_data is None:
 			self.game_data = state_info.unsqueeze(0)
 		else:
@@ -204,13 +205,17 @@ class MuZero_Agent:
 
 		return action
 
-	def save_game_data(self, winner):
+	def save_game_data(self, reward):
 		# Updates the return for the winner
 
-		if winner == 0:
+		if reward == 1: # Blue player won
 			self.game_data[:, 2] = self.game_data[:, 0]*(-2) + 1
-		elif winner == 1:
+		elif reward == -1: # Red player won
 			self.game_data[:, 2] = self.game_data[:, 0]*2 - 1
+		else: # Draw
+			self.game_data[:, 2] = 0
+
+		print(self.game_data)
 
 		shape = self.game_data.shape
 		indices = self.game_data.nonzero().cpu()
@@ -219,18 +224,20 @@ class MuZero_Agent:
 		with open('./game_data/game_{0}_agent_{1}.pickle'.format(self.game_batch_num, self.agent_num), 'wb') as f:
 			pickle.dump([shape, indices, values], f, protocol=pickle.HIGHEST_PROTOCOL)
 
-	def evaluate(self, game_state, masked_actions, player_turn, reward=0, winner=None):
-		if winner is not None:
-			winner = self.trans_player(winner)
+	def evaluate(self, game_state, masked_actions, reward=0, done=False):
+
+		player_turn = game_state[-2, 0, 0]
+		if done:
+			winner = player_turn
 			if self.save_data:
-				self.save_game_data(winner)
+				self.save_game_data(reward)
 			self.game_data = None
 			action = None
 		else:
-			self.state_buffer.append(game_state)
-			if len(self.state_buffer) > self.observations_per_state:
-				self.state_buffer.pop(0)
-			action = self.take_action(self.state_buffer[::-1], masked_actions, player_turn)
+			# self.state_buffer.append(game_state)
+			# if len(self.state_buffer) > self.observations_per_state:
+			# 	self.state_buffer.pop(0)
+			action = self.take_action(game_state, masked_actions, player_turn)
 
 		return action
 

@@ -2,14 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="74147775-6eff-4ee0-9b62-6ad140e6b823" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/util.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.ipynb_checkpoints/Untitled1-checkpoint.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/State_Representation.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/State_Representation.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Untitled1.ipynb" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/checkers.py" beforeDir="false" afterPath="$PROJECT_DIR$/checkers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/evaluations/Visualizer.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/evaluations/Visualizer.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/muzero_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/muzero_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/networks.py" beforeDir="false" afterPath="$PROJECT_DIR$/networks.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,7 +80,19 @@
       <option name="presentableId" value="Default" />
       <updated>1575431617731</updated>
     </task>
+    <task id="LOCAL-00001" summary="Updated and cleaned up checkers.py file">
+      <created>1579334149876</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1579334149876</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Updated and cleaned up checkers.py file" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated and cleaned up checkers.py file" />
   </component>
   <component name="WindowStateProjectService">
     <state x="470" y="219" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1576737505917">
@@ -93,70 +101,74 @@
     <state x="418" y="680" key="#com.intellij.execution.impl.EditConfigurationsDialog/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1576139588275" />
     <state x="2338" y="197" key="#com.intellij.execution.impl.EditConfigurationsDialog/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1576602794376" />
     <state x="470" y="219" key="#com.intellij.execution.impl.EditConfigurationsDialog/67.27.1853.1053@67.27.1853.1053" timestamp="1576737505917" />
+    <state x="2518" y="149" width="780" height="807" key="CommitChangelistDialog2" timestamp="1579334149774">
+      <screen x="1920" y="0" width="1920" height="1080" />
+    </state>
+    <state x="2518" y="149" width="780" height="807" key="CommitChangelistDialog2/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579334149774" />
     <state x="721" y="382" width="424" height="484" key="FileChooserDialogImpl" timestamp="1579037046735">
       <screen x="0" y="483" width="1920" height="1080" />
     </state>
     <state x="721" y="382" width="424" height="484" key="FileChooserDialogImpl/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1579037046735" />
     <state x="2696" y="310" width="424" height="484" key="FileChooserDialogImpl/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1576602793609" />
     <state x="816" y="329" width="424" height="484" key="FileChooserDialogImpl/67.27.1853.1053@67.27.1853.1053" timestamp="1578952111896" />
-    <state width="1830" height="266" key="GridCell.Tab.0.bottom" timestamp="1579334100689">
+    <state width="1830" height="266" key="GridCell.Tab.0.bottom" timestamp="1579338301716">
       <screen x="1920" y="0" width="1920" height="1080" />
     </state>
     <state width="1830" height="343" key="GridCell.Tab.0.bottom/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1579037084957" />
-    <state width="1830" height="266" key="GridCell.Tab.0.bottom/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579334100689" />
+    <state width="1830" height="266" key="GridCell.Tab.0.bottom/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579338301716" />
     <state width="1830" height="343" key="GridCell.Tab.0.bottom/67.27.1853.1053@67.27.1853.1053" timestamp="1576863016586" />
-    <state width="1830" height="266" key="GridCell.Tab.0.center" timestamp="1579334100689">
+    <state width="1830" height="266" key="GridCell.Tab.0.center" timestamp="1579338301716">
       <screen x="1920" y="0" width="1920" height="1080" />
     </state>
     <state width="1830" height="343" key="GridCell.Tab.0.center/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1579037084957" />
-    <state width="1830" height="266" key="GridCell.Tab.0.center/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579334100689" />
+    <state width="1830" height="266" key="GridCell.Tab.0.center/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579338301716" />
     <state width="1830" height="343" key="GridCell.Tab.0.center/67.27.1853.1053@67.27.1853.1053" timestamp="1576863016586" />
-    <state width="1830" height="266" key="GridCell.Tab.0.left" timestamp="1579334100689">
+    <state width="1830" height="266" key="GridCell.Tab.0.left" timestamp="1579338301716">
       <screen x="1920" y="0" width="1920" height="1080" />
     </state>
     <state width="1830" height="343" key="GridCell.Tab.0.left/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1579037084957" />
-    <state width="1830" height="266" key="GridCell.Tab.0.left/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579334100689" />
+    <state width="1830" height="266" key="GridCell.Tab.0.left/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579338301716" />
     <state width="1830" height="343" key="GridCell.Tab.0.left/67.27.1853.1053@67.27.1853.1053" timestamp="1576863016586" />
-    <state width="1830" height="266" key="GridCell.Tab.0.right" timestamp="1579334100689">
+    <state width="1830" height="266" key="GridCell.Tab.0.right" timestamp="1579338301716">
       <screen x="1920" y="0" width="1920" height="1080" />
     </state>
     <state width="1830" height="343" key="GridCell.Tab.0.right/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1579037084957" />
-    <state width="1830" height="266" key="GridCell.Tab.0.right/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579334100689" />
+    <state width="1830" height="266" key="GridCell.Tab.0.right/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579338301716" />
     <state width="1830" height="343" key="GridCell.Tab.0.right/67.27.1853.1053@67.27.1853.1053" timestamp="1576863016586" />
-    <state width="1830" height="343" key="GridCell.Tab.1.bottom" timestamp="1579037084961">
-      <screen x="0" y="483" width="1920" height="1080" />
+    <state width="1830" height="343" key="GridCell.Tab.1.bottom" timestamp="1579335850267">
+      <screen x="1920" y="0" width="1920" height="1080" />
     </state>
     <state width="1830" height="343" key="GridCell.Tab.1.bottom/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1579037084961" />
-    <state width="1830" height="343" key="GridCell.Tab.1.bottom/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579029144425" />
+    <state width="1830" height="343" key="GridCell.Tab.1.bottom/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579335850267" />
     <state width="1830" height="343" key="GridCell.Tab.1.bottom/67.27.1853.1053@67.27.1853.1053" timestamp="1576863016587" />
-    <state width="1830" height="343" key="GridCell.Tab.1.center" timestamp="1579037084958">
-      <screen x="0" y="483" width="1920" height="1080" />
+    <state width="1830" height="343" key="GridCell.Tab.1.center" timestamp="1579335850267">
+      <screen x="1920" y="0" width="1920" height="1080" />
     </state>
     <state width="1830" height="343" key="GridCell.Tab.1.center/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1579037084958" />
-    <state width="1830" height="343" key="GridCell.Tab.1.center/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579029144425" />
+    <state width="1830" height="343" key="GridCell.Tab.1.center/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579335850267" />
     <state width="1830" height="343" key="GridCell.Tab.1.center/67.27.1853.1053@67.27.1853.1053" timestamp="1576863016587" />
-    <state width="1830" height="343" key="GridCell.Tab.1.left" timestamp="1579037084958">
-      <screen x="0" y="483" width="1920" height="1080" />
+    <state width="1830" height="343" key="GridCell.Tab.1.left" timestamp="1579335850267">
+      <screen x="1920" y="0" width="1920" height="1080" />
     </state>
     <state width="1830" height="343" key="GridCell.Tab.1.left/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1579037084958" />
-    <state width="1830" height="343" key="GridCell.Tab.1.left/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579029144425" />
+    <state width="1830" height="343" key="GridCell.Tab.1.left/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579335850267" />
     <state width="1830" height="343" key="GridCell.Tab.1.left/67.27.1853.1053@67.27.1853.1053" timestamp="1576863016587" />
-    <state width="1830" height="343" key="GridCell.Tab.1.right" timestamp="1579037084958">
-      <screen x="0" y="483" width="1920" height="1080" />
+    <state width="1830" height="343" key="GridCell.Tab.1.right" timestamp="1579335850267">
+      <screen x="1920" y="0" width="1920" height="1080" />
     </state>
     <state width="1830" height="343" key="GridCell.Tab.1.right/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1579037084958" />
-    <state width="1830" height="343" key="GridCell.Tab.1.right/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579029144425" />
+    <state width="1830" height="343" key="GridCell.Tab.1.right/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579335850267" />
     <state width="1830" height="343" key="GridCell.Tab.1.right/67.27.1853.1053@67.27.1853.1053" timestamp="1576863016587" />
     <state x="482" y="350" key="SettingsEditor" timestamp="1576735910565">
       <screen x="0" y="483" width="1920" height="1080" />
     </state>
     <state x="482" y="350" key="SettingsEditor/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1576735910565" />
     <state x="2402" y="187" key="SettingsEditor/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1575771991714" />
-    <state x="649" y="863" key="com.intellij.ide.util.TipDialog" timestamp="1578548445107">
+    <state x="649" y="863" key="com.intellij.ide.util.TipDialog" timestamp="1579337842406">
       <screen x="0" y="483" width="1920" height="1080" />
     </state>
     <state x="649" y="863" key="com.intellij.ide.util.TipDialog/1920.0.1920.1080/0.483.1920.1080@0.483.1920.1080" timestamp="1576525689274" />
-    <state x="649" y="863" key="com.intellij.ide.util.TipDialog/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1578548445107" />
+    <state x="649" y="863" key="com.intellij.ide.util.TipDialog/1920.0.1920.1080/0.483.1920.1080@1920.0.1920.1080" timestamp="1579337842406" />
     <state x="693" y="398" key="com.intellij.ide.util.TipDialog/67.27.1853.1053@67.27.1853.1053" timestamp="1576863028020" />
     <state x="2567" y="170" width="683" height="764" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1575433996346">
       <screen x="0" y="27" width="3840" height="1536" />
@@ -173,7 +185,7 @@
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <condition expression="state_rep.shape[0] == 18" language="Python" />
           <url>file://$PROJECT_DIR$/muzero_agent.py</url>
-          <line>176</line>
+          <line>177</line>
           <option name="timeStamp" value="24" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">

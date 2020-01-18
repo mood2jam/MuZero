@@ -398,14 +398,14 @@ class Game:
 					self.draw = 0
 					self.draw_player = None
 
+		self.selected_piece = None
+		self.selected_legal_moves = []
+		self.hop = False
+
 		if self.turn == BLUE:
 			self.turn = RED
 		else:
 			self.turn = BLUE
-
-		self.selected_piece = None
-		self.selected_legal_moves = []
-		self.hop = False
 
 		if self.check_for_endgame():
 			if self.turn == BLUE:
@@ -414,7 +414,7 @@ class Game:
 				else:
 					if self.print_board:
 						print("RED WINS")
-				self.winner = RED
+				self.winner = -1
 				self.game_over = True
 			else:
 				if self.show_graphics:
@@ -422,7 +422,7 @@ class Game:
 				else:
 					if self.print_board:
 						print("BLUE WINS")
-				self.winner = BLUE
+				self.winner = 1
 				self.game_over = True
 
 		if self.check_draw():
@@ -431,6 +431,7 @@ class Game:
 			if self.show_graphics:
 				self.graphics.draw_message("DRAW!")
 			self.game_over = True
+			self.winner = 0
 
 	def check_draw(self):
 		if self.draw >= self.draw_limit:
@@ -893,6 +894,9 @@ def game_play_loop(game, agent1, agent2):
 
 		game.render()
 
+	# Let the first agent do one final evaluation in order to save the data
+	agent1.evaluate(state, masked_actions, reward, done)
+
 def main():
 	# start = time.time()
 	# num_games = 1
@@ -908,7 +912,7 @@ def main():
 	game = Game(show_graphics=True, print_board=False, delay=0)
 	for i in range(1000):
 		# Need to fix this part
-		game_play_loop(game, Agent("human"), Agent("random_computer"))
+		game_play_loop(game, MuZero_Agent(), Agent("random_computer"))
 		game.reset()
 		print(i)
 	# board = Board()
@@ -933,5 +937,6 @@ def main():
 if __name__ == "__main__":
 	import cProfile
 
-	cProfile.run('main()')
-	# main()
+
+	# cProfile.run('main()')
+	main()
