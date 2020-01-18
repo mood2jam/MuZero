@@ -45,6 +45,7 @@ import pygame, sys
 import numpy as np
 from pygame.locals import *
 import time
+from muzero_agent import *
 
 
 pygame.font.init()
@@ -65,23 +66,16 @@ SOUTHWEST = "southwest"
 SOUTHEAST = "southeast"
 
 
-class Player:
+class Agent:
 	"""
 	An agent to interact with the checkers environment
 	"""
-	def __init__(self, type="random_computer", color=BLUE, name=None, agent=None):
+	def __init__(self, type="random_computer", name=None):
 		self.name = name
 		self.type = type
-		self.color = color
-		if "computer" in type and agent==None:
-			self.Agent = None
-		else:
-			self.Agent = agent
-		if type == "human":
-			self.policy = None
 
-	def evaluate(self, state, masked_actions, player_turn = None, reward=0, winner=None):
-		if winner is None:
+	def evaluate(self, state, masked_actions, winner, done):
+		if not done:
 			return np.random.choice(np.where(masked_actions == 1)[0])
 		else:
 			return None
@@ -91,8 +85,7 @@ class Game:
 	"""
 	The main game control.
 	"""
-
-	def __init__(self, player_1_type, player_2_type, delay=.01, show_graphics=True, print_board=False, agent1=None, agent2=None):
+	def __init__(self, delay=.01, show_graphics=True, print_board=False):
 		self.show_graphics = show_graphics
 		if self.show_graphics:
 			self.graphics = Graphics()
@@ -103,11 +96,32 @@ class Game:
 		self.selected_piece = None # a board location. 
 		self.hop = False
 		self.selected_legal_moves = []
-		self.players = [Player(type=player_1_type, color=BLUE, agent=agent1), Player(type=player_2_type, color=RED, agent=agent2)]
+		# self.players = [Player(type=player_1_type, color=BLUE, agent=agent1), Player(type=player_2_type, color=RED, agent=agent2)]
 		self.print_board = print_board
 		self.delay = delay
 		self.game_over = False
-		self.winner = None
+		self.winner = 0
+		self.draw = 0
+		self.draw_limit = 4
+		self.history = {BLUE:[], RED:[]}
+		self.shape = (8,8)
+		self.types_of_pieces = 4
+		self.draw_player = None
+		self.possible_moves = 8
+		self.possible_positions = 32
+
+	def reset(self):
+		self.board = Board()
+		self.draw = 0
+		self.draw_player = None
+		self.turn = BLUE
+		self.winner = 0
+		self.history = {BLUE: [], RED: []}
+		self.hop = False
+		self.game_over = False
+		if self.show_graphics:
+			self.graphics = Graphics()
+
 
 	def setup(self):
 		"""Draws the window and board at the beginning of the game"""
@@ -141,6 +155,12 @@ class Game:
 
 					elif self.selected_piece != None and self.mouse_pos in self.board.legal_moves(self.selected_piece):
 						x, y = int(self.mouse_pos[0]), int(self.mouse_pos[1])
+
+						# Keep track of history to deal with draws
+						self.history[self.turn].append((self.selected_piece, (x,y)))
+						if len(self.history[self.turn]) > 3:
+							self.history[self.turn].pop(0)
+
 						self.board.move_piece(self.selected_piece, (x,y))
 					
 						if self.mouse_pos not in self.board.adjacent(self.selected_piece):
@@ -169,16 +189,17 @@ class Game:
 		:param action_dict:
 		:return:
 		"""
-		available_actions = np.zeros(64 * 8)
+		available_actions = []
 		available_pieces = list(action_dict.keys())
-		col_size = 8
+		col_size = 4
 		for i, piece in enumerate(available_pieces):
 			legal_moves_for_piece = action_dict[piece]
 			for j, available_action in enumerate(legal_moves_for_piece):
-				unraveled_piece_position = (piece[0] * col_size + piece[1])
+				unraveled_piece_position = (piece[0] * col_size + piece[1] // 2)
 				movement = (available_action[0] - piece[0], available_action[1] - piece[1])
 				pos = self.inv_pos_map[movement]
-				available_actions[unraveled_piece_position * 8 + pos] = 1
+				available_actions.append(unraveled_piece_position * 8 + pos)
+
 		return available_actions
 
 
@@ -189,7 +210,13 @@ class Game:
 		:return:
 		"""
 		unraveled_piece_pos = action // 8
-		selected_piece = (unraveled_piece_pos // 8, unraveled_piece_pos % 8)
+		i = unraveled_piece_pos // 4
+		if i % 2 == 0:
+			j = unraveled_piece_pos*2 % 8
+		else:
+			j = unraveled_piece_pos*2 % 8 + 1
+
+		selected_piece = (i,j)
 
 		unraveled_move_pos = action % 8
 		i, j = self.pos_map[unraveled_move_pos]
@@ -198,73 +225,143 @@ class Game:
 
 		return selected_piece, selected_move
 
-	def computer_event_loop(self):
-		"""
-				The event loop. This is where events are triggered
-				(like a mouse click) and then effect the game state.
-				"""
-		# x = pygame.mouse.get_pos()[0]
-		# y = pygame.mouse.get_pos()[1]
-		# self.mouse_pos = self.graphics.board_coords(x, y)  # what square is the mouse in?
-		# self.mouse_pos = int(self.mouse_pos[0]), int(self.mouse_pos[1])
-		self.selected_piece = None
+	def get_current_info(self):
+		Z = self.board.get_board()
 
-		while True:
-			if self.delay > 0:
-				time.sleep(self.delay)
-			all_legal_moves = self.board.all_legal_moves(self.current_player.color, self.hop, self.selected_piece)
-			action_array = self.action_dict_to_array(all_legal_moves)
+		state = np.zeros((self.types_of_pieces + 1 + 2, self.shape[0], self.shape[1]))
 
-			if self.current_player.Agent is not None:
-				action = self.current_player.Agent.evaluate(self.board.get_board(), action_array, self.current_player.color, winner=self.winner)
+		X, Y = np.meshgrid(np.arange(self.shape[0]), np.arange(self.shape[1]))
+		state[Z, X, Y] = 1
+
+		if self.turn == RED:
+			state[-2] = 1
+
+		if self.draw > 0:
+			state[-1, (self.draw - 1) // self.shape[0], (self.draw - 1) % self.shape[1]] = 1
+
+		return state[1:, :, :], self.winner, self.game_over, {"hop": self.hop, "turn": self.turn}
+
+	def step(self, action):
+		# Interpret the action
+
+		self.selected_piece, self.selected_move = self.interpret_action(action)
+
+		# Make sure the move is legal
+		assert self.selected_piece != None and self.selected_move in self.board.legal_moves(
+			self.selected_piece), "Selected piece not none or selected move not available when hop is False."
+
+		# Keep track of history to deal with draws
+		self.history[self.turn].append((self.selected_piece, self.selected_move))
+		if len(self.history[self.turn]) > 3:
+			self.history[self.turn].pop(0)
+
+		if self.hop == True:
+			self.board.move_piece(self.selected_piece, self.selected_move)
+			self.board.remove_piece((self.selected_piece[0] + (self.selected_move[0] - self.selected_piece[0]) / 2,
+															 self.selected_piece[1] + (self.selected_move[1] - self.selected_piece[1]) / 2))
+
+			if self.board.legal_moves(self.selected_move, self.hop) == []:
+				self.hop = False
+				self.end_turn()
 			else:
-				action = self.current_player.evaluate(self.board.get_board(), action_array, self.current_player.color, winner=self.winner)
+				self.selected_piece = self.selected_move
 
-			if self.game_over:
-				break
+		elif self.hop == False:
 
-			self.selected_piece, self.selected_move = self.interpret_action(action)
+			self.board.move_piece(self.selected_piece, self.selected_move)
 
-			if self.hop == False:
-				if self.selected_piece != None and self.selected_move in self.board.legal_moves(self.selected_piece):
-					self.board.move_piece(self.selected_piece, self.selected_move)
+			if self.selected_move not in self.board.adjacent(self.selected_piece):
+				self.board.remove_piece(((self.selected_piece[0] + self.selected_move[0]) // 2,
+																 (self.selected_piece[1] + self.selected_move[1]) // 2))
+				self.hop = True
+				self.selected_piece = self.selected_move
+				if self.board.legal_moves(self.selected_piece, self.hop) == []:
+					self.hop = False
+					self.end_turn()
+			else:
+				self.end_turn()
 
-					if self.selected_move not in self.board.adjacent(self.selected_piece):
-						self.board.remove_piece(((self.selected_piece[0] + self.selected_move[0]) // 2,
-																		 (self.selected_piece[1] + self.selected_move[1]) // 2))
+		return self.get_current_info()
 
-						self.hop = True
-						self.selected_piece = self.selected_move
 
-						if self.board.legal_moves(self.selected_piece, self.hop) == []:
-							break
-						else:
-							continue
-					else:
-						break
-				else:
-					raise AttributeError("Selected piece not none or selected move not available when hop is False.")
+	# def computer_event_loop(self):
+	# 	"""
+	# 			The event loop. This is where events are triggered
+	# 			(like a mouse click) and then effect the game state.
+	# 			"""
+	# 	# x = pygame.mouse.get_pos()[0]
+	# 	# y = pygame.mouse.get_pos()[1]
+	# 	# self.mouse_pos = self.graphics.board_coords(x, y)  # what square is the mouse in?
+	# 	# self.mouse_pos = int(self.mouse_pos[0]), int(self.mouse_pos[1])
+	# 	self.selected_piece = None
+	#
+	# 	while True:
+	# 		if self.delay > 0:
+	# 			time.sleep(self.delay)
+	# 		all_legal_moves = self.board.all_legal_moves(self.current_player.color, self.hop, self.selected_piece)
+	# 		print(all_legal_moves)
+	# 		action_array = np.zeros(32*8)
+	# 		self.action_space = self.action_dict_to_array(all_legal_moves) # Lists out all the possible actions
+	# 		action_array[self.action_space] = 1
+	#
+	#
+	# 		if self.current_player.Agent is not None:
+	# 			action = self.current_player.Agent.evaluate(self.board.get_board(), action_array, self.current_player.color, winner=self.winner)
+	# 		else:
+	# 			action = self.current_player.evaluate(self.board.get_board(), action_array, self.current_player.color, winner=self.winner)
+	#
+	# 		if self.game_over:
+	# 			break
+	#
+	# 		self.selected_piece, self.selected_move = self.interpret_action(action)
+	#
+	# 		if self.hop == False:
+	# 			if self.selected_piece != None and self.selected_move in self.board.legal_moves(self.selected_piece):
+	# 				self.board.move_piece(self.selected_piece, self.selected_move)
+	#
+	# 				if self.selected_move not in self.board.adjacent(self.selected_piece):
+	# 					self.board.remove_piece(((self.selected_piece[0] + self.selected_move[0]) // 2,
+	# 																	 (self.selected_piece[1] + self.selected_move[1]) // 2))
+	#
+	# 					self.hop = True
+	# 					self.selected_piece = self.selected_move
+	#
+	# 					if self.board.legal_moves(self.selected_piece, self.hop) == []:
+	# 						break
+	# 					else:
+	# 						continue
+	# 				else:
+	# 					break
+	# 			else:
+	# 				raise AttributeError("Selected piece not none or selected move not available when hop is False.")
+	#
+	# 		if self.hop == True:
+	# 			if self.selected_piece != None and self.selected_move in self.board.legal_moves(self.selected_piece, self.hop):
+	# 				self.board.move_piece(self.selected_piece, self.selected_move)
+	# 				self.board.remove_piece((self.selected_piece[0] + (self.selected_move[0] - self.selected_piece[0]) / 2,
+	# 																 self.selected_piece[1] + (self.selected_move[1] - self.selected_piece[1]) / 2))
+	#
+	# 			if self.board.legal_moves(self.selected_move, self.hop) == []:
+	# 				break
+	# 			else:
+	# 				self.selected_piece = self.selected_move
+	#
+	# 	self.end_turn() # If we break out of the while loop that means we have ended the turn
 
-			if self.hop == True:
-				if self.selected_piece != None and self.selected_move in self.board.legal_moves(self.selected_piece, self.hop):
-					self.board.move_piece(self.selected_piece, self.selected_move)
-					self.board.remove_piece((self.selected_piece[0] + (self.selected_move[0] - self.selected_piece[0]) / 2,
-																	 self.selected_piece[1] + (self.selected_move[1] - self.selected_piece[1]) / 2))
+	def get_possible_actions(self):
+		all_legal_moves = self.board.all_legal_moves(self.turn, self.hop, self.selected_piece)
 
-				if self.board.legal_moves(self.selected_move, self.hop) == []:
-					break
-				else:
-					self.selected_piece = self.selected_move
+		possible_actions = self.action_dict_to_array(all_legal_moves)  # Lists out all the possible actions
 
-		self.end_turn() # If we break out of the while loop that means we have ended the turn
+		return possible_actions
 
-	def update(self):
-		"""Calls on the graphics class to update the game display."""
+	def render(self):
+		"""Calls on the graphics class to render the game display."""
 		# if self.selected_piece is not None:
 		# 	self.selected_piece = int(self.selected_piece[0]), int(self.selected_piece[1])
 
 		if self.show_graphics:
-			self.graphics.update_display(self.board, self.selected_legal_moves, self.selected_piece)
+			self.graphics.render_display(self.board, self.selected_legal_moves, self.selected_piece)
 			if self.game_over:
 				time.sleep(1)
 		else:
@@ -276,45 +373,31 @@ class Game:
 		pygame.quit()
 		sys.exit
 
-	def get_current_player(self, player_color):
-		for player in self.players:
-			if player.color == player_color:
-				return player
-
-	def play(self):
-		""""This executes the game and controls its flow."""
-		if self.show_graphics:
-			self.setup()
-		moves = 0
-		players_acknowledged_winner = 0
-		while True: # main game loop
-
-			self.current_player = self.get_current_player(self.turn)
-			if self.current_player.type == "human":
-				self.human_event_loop()
-			else:
-				self.computer_event_loop()
-
-			self.update()
-
-			if self.game_over:
-				# Give both players the chance to acknowledge the winner
-				if players_acknowledged_winner < 2:
-					players_acknowledged_winner += 1
-				else:
-					if self.show_graphics:
-						self.terminate_game()
-					break
-
-			moves += 1
-
-		return self.winner, moves
+	# def get_current_player(self, player_color):
+	# 	for player in self.players:
+	# 		if player.color == player_color:
+	# 			return player
 
 	def end_turn(self):
 		"""
 		End the turn. Switches the current player. 
 		end_turn() also checks for and game and resets a lot of class attributes.
 		"""
+		# print(self.draw_player)
+		if self.draw_player is None:
+			if len(self.history[self.turn]) > 2:
+				if self.history[self.turn][-1] == self.history[self.turn][-3]:
+					self.draw_player = self.turn
+					self.draw += 1
+		else:
+			if self.turn == self.draw_player:
+				if self.history[self.draw_player][-1] == self.history[self.draw_player][-3]:
+					self.draw += 1
+					# print("DRAW:", self.draw)
+				else:
+					self.draw = 0
+					self.draw_player = None
+
 		if self.turn == BLUE:
 			self.turn = RED
 		else:
@@ -341,6 +424,18 @@ class Game:
 						print("BLUE WINS")
 				self.winner = BLUE
 				self.game_over = True
+
+		if self.check_draw():
+			if self.print_board:
+				print("DRAW!")
+			if self.show_graphics:
+				self.graphics.draw_message("DRAW!")
+			self.game_over = True
+
+	def check_draw(self):
+		if self.draw >= self.draw_limit:
+			return True
+		return False
 
 	def check_for_endgame(self):
 		"""
@@ -377,9 +472,9 @@ class Graphics:
 		pygame.init()
 		pygame.display.set_caption(self.caption)
 
-	def update_display(self, board, legal_moves, selected_piece):
+	def render_display(self, board, legal_moves, selected_piece):
 		"""
-		This updates the current display.
+		This renders the current display.
 		"""
 		self.screen.blit(self.background, (0,0))
 		
@@ -492,23 +587,23 @@ class Board:
 		Empty is 0, Blue is 1, Blue King is 2, Red is 3, Red King is 4
 		"""
 		board = self.matrix
-		board_string = np.empty((8,8), dtype=object)
+		board_string = np.empty((8,8), dtype=np.int64)
 
 		for x in range(8):
 			for y in range(8):
 				if board[x][y].occupant is not None:
 					if board[x][y].occupant.color == BLUE:
 						if board[x][y].occupant.king:
-							board_string[x,y] = "BK"
+							board_string[x,y] = 4
 						else:
-							board_string[x, y] = "B-"
+							board_string[x, y] = 3
 					else:
 						if board[x][y].occupant.king:
-							board_string[x,y] = "RK"
+							board_string[x,y] = 2
 						else:
-							board_string[x, y] = "R-"
+							board_string[x, y] = 1
 				else:
-					board_string[x, y] = "[]"
+					board_string[x, y] = 0
 
 		return board_string
 	
@@ -702,16 +797,120 @@ class Square:
 		self.color = color # color is either BLACK or WHITE
 		self.occupant = occupant # occupant is a Square object
 
+
+# def computer_event_loop(game):
+# 	"""
+# 			The event loop. This is where events are triggered
+# 			(like a mouse click) and then effect the game state.
+# 			"""
+# 	# x = pygame.mouse.get_pos()[0]
+# 	# y = pygame.mouse.get_pos()[1]
+# 	# self.mouse_pos = self.graphics.board_coords(x, y)  # what square is the mouse in?
+# 	# self.mouse_pos = int(self.mouse_pos[0]), int(self.mouse_pos[1])
+# 	# We have not currently made any specific action for a piece
+#
+# 	state, reward, done, info = game.get_current_info()
+#
+# 	while True:
+# 		if game.delay > 0:
+# 			time.sleep(game.delay)
+#
+# 		# Handles possible actions
+# 		action_array = np.zeros(32 * 8)
+# 		possible_actions = game.get_possible_actions() # Lists out all the possible actions
+# 		action_array[possible_actions] = 1
+#
+# 		if game.current_player.Agent is not None:
+# 			action = game.current_player.Agent.evaluate(state, action_array, reward, done)
+# 		else:
+# 			action = game.current_player.evaluate(state, action_array, reward, done)
+#
+# 		if action is None:
+# 			break
+#
+# 		state, reward, done, info = game.step(action)
+#
+# 		if info["turn"] != game.current_player.color:
+# 			break
+#
+# def play(game):
+# 	""""This executes the game and controls its flow."""
+# 	if game.show_graphics:
+# 		game.setup()
+# 	moves = 0
+# 	players_acknowledged_winner = 0
+# 	while True: # main game loop
+#
+# 		game.current_player = game.get_current_player(game.turn)
+# 		if game.current_player.type == "human":
+# 			game.human_event_loop()
+# 		else:
+# 			computer_event_loop(game)
+#
+# 		game.render()
+#
+# 		if game.game_over:
+# 			# Give both players the chance to acknowledge the winner
+# 			if players_acknowledged_winner < 2:
+# 				players_acknowledged_winner += 1
+# 			else:
+# 				if game.show_graphics:
+# 					game.terminate_game()
+# 				break
+#
+# 		moves += 1
+#
+# 	return game.winner, moves
+
+def game_play_loop(game, agent1, agent2):
+	if game.show_graphics:
+		game.setup()
+
+	state, reward, done, info = game.get_current_info()
+
+	while not done:
+		# Gets the possible actions available for the player
+		possible_actions = game.get_possible_actions()
+
+		# Creates an array of masked actions for us to use
+		masked_actions = np.zeros(game.possible_positions * game.possible_moves)
+		masked_actions[possible_actions] = 1
+
+		if game.turn == BLUE:
+			if agent1.type == "human":
+				game.human_event_loop()
+				state, reward, done, info = game.get_current_info()
+			else:
+				action = agent1.evaluate(state, masked_actions, reward, done)
+				state, reward, done, info = game.step(action)
+		else:
+			if agent2.type == "human":
+				game.human_event_loop()
+				state, reward, done, info = game.get_current_info()
+			else:
+				action = agent2.evaluate(state, masked_actions, reward, done)
+				state, reward, done, info = game.step(action)
+
+		game.render()
+
 def main():
-	start = time.time()
-	num_games = 100
-	all_moves = []
-	for _ in range(num_games):
-		game = Game("human", "random_computer", show_graphics=True, print_board=False, delay=0)
-		all_moves.append(game.play()[1])
-	end = time.time()
-	print(num_games, "games in", end-start, "seconds")
-	print("Average of {} moves per game.".format(np.mean(all_moves)))
+	# start = time.time()
+	# num_games = 1
+	# all_moves = []
+	# agent1 = MuZero_Agent(agent_num=0, device="cuda:0", save_data=False)
+	# agent2 = MuZero_Agent(agent_num=0, device="cuda:0", save_data=False)
+	# for _ in range(num_games):
+	# 	game = Game("computer", "random_computer", show_graphics=False, print_board=True, delay=0, agent1=agent1, agent2=agent2)
+	# 	all_moves.append(game.play()[1])
+	# end = time.time()
+	# print(num_games, "games in", end-start, "seconds")
+	# print("Average of {} moves per game.".format(np.mean(all_moves)))
+	game = Game(show_graphics=True, print_board=False, delay=0)
+	for i in range(1000):
+		# Need to fix this part
+		game_play_loop(game, Agent("human"), Agent("random_computer"))
+		game.reset()
+		print(i)
 	# board = Board()
 	# print(board.get_board())
 	# your_pieces = np.squeeze(np.dstack(np.where(board.get_board() == 'R-')))

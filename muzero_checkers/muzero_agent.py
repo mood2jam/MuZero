@@ -48,7 +48,7 @@ class MuZero_Agent:
 		self.num_unroll_steps = 5
 		self.save_data = save_data
 		self.agent_num = agent_num
-		self.game_num = 0
+		self.game_batch_num = 0
 		self.observations_per_state = 4
 		self.state_buffer = []
 
@@ -91,7 +91,7 @@ class MuZero_Agent:
 		# This translates into 17 x 8 x 8 state that we can feed into our networks
 		return state
 
-	def run_MCTS(self, s0, masked_actions):
+	def run_MCTS(self, s0, masked_actions): # 88% of the time
 		"""
 		Monte Carlo Tree Search with help from the nueral networks
 
@@ -104,7 +104,7 @@ class MuZero_Agent:
 		# Initialize data structures
 		self.state_trans = torch.ones((1,l))*float('inf')
 		self.Q, self.R, self.N, self.reward = torch.zeros((1,l)).to(self.device), torch.zeros((1,l)).to(self.device), torch.zeros((1,l)).to(self.device), torch.zeros((1,l)).to(self.device)
-		self.P, _ = self.predict_net(s0)
+		self.P, _ = self.predict_net(s0) # s0 is a list of all starting states from all games
 		self.get_s_rep = [s0]
 		self.path = list()
 		self.num_states = 1
@@ -113,11 +113,11 @@ class MuZero_Agent:
 		for i in range(self.num_sims):
 			s = 0
 			while True:
-				new_s, a = self.select(s, torch.from_numpy(masked_actions))
+				new_s, a = self.select(s, torch.from_numpy(masked_actions)) # 12% of the time
 				self.path.append((s, a))
 				if new_s == float('inf'):
-					policy, value = self.expand(s, a)
-					self.backup(policy, value)
+					policy, value = self.expand(s, a) # 65% of the time <- this is the one to speed up
+					self.backup(policy, value) # 5% of the time
 					break
 				else:
 					s = int(new_s)
@@ -174,8 +174,8 @@ class MuZero_Agent:
 		state_rep = self.trans_state(raw_state, player)
 
 		# Get the state and policy
-		s0 = self.repr_net(state_rep.to(self.device).unsqueeze(0))
-		N0 = self.run_MCTS(s0, masked_actions)
+		s0 = self.repr_net(state_rep.to(self.device).unsqueeze(0)) 	# Input a bunch of states into this depending on how many games we are playing at once
+		N0 = self.run_MCTS(s0, masked_actions) 											# This will use one set of nueral networks no matter how many games we are looking at
 
 		if self.strategy == "deterministic":
 			N0 = N0.to(torch.float32)
@@ -216,7 +216,7 @@ class MuZero_Agent:
 		indices = self.game_data.nonzero().cpu()
 		values = self.game_data[indices[:,0], indices[:,1]].cpu()
 
-		with open('./game_data/game_{0}_agent_{1}.pickle'.format(self.game_num, self.agent_num), 'wb') as f:
+		with open('./game_data/game_{0}_agent_{1}.pickle'.format(self.game_batch_num, self.agent_num), 'wb') as f:
 			pickle.dump([shape, indices, values], f, protocol=pickle.HIGHEST_PROTOCOL)
 
 	def evaluate(self, game_state, masked_actions, player_turn, reward=0, winner=None):
