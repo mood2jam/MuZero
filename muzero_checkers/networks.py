@@ -30,7 +30,7 @@ class ConvBlock(nn.Module):
     return self.block(x)
 
 class Repr_Net(nn.Module):
-  def __init__(self, start_channels=6, res_block_channels=32, num_res_blocks=3):
+  def __init__(self, start_channels=17, res_block_channels=32, num_res_blocks=3):
     super(Repr_Net, self).__init__()
     self.res_blocks = nn.Sequential(*[ResidualBlock(res_block_channels) for _ in range(num_res_blocks)])
     self.conv_block = ConvBlock(start_channels,res_block_channels)
@@ -75,7 +75,7 @@ class Dynamics_Net(nn.Module):
     return state, reward
 
 class Predict_Net(nn.Module):
-  def __init__(self, num_res_blocks=5, num_actions=256, res_block_channels=32, image_size=8):
+  def __init__(self, num_res_blocks=5, num_actions=512, res_block_channels=32, image_size=8):
     super(Predict_Net, self).__init__()
     assert res_block_channels >= 16
     # assert image_size*image_size*res_block_channels == num_actions
